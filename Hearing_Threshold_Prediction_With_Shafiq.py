@@ -24,7 +24,6 @@ if uploaded_file is not None:
     st.success("✅ File loaded successfully!")
     st.write(df.head())
 
-    # Frequency mapping
     frequencies = {
         "500 Hz": "PTA-500 Hz",
         "1000 Hz": "PTA-1000 Hz",
@@ -32,7 +31,6 @@ if uploaded_file is not None:
         "4000 Hz": "PTA-4000 Hz",
     }
 
-    # Features
     features = [
         "OTOSCOPE", "TYMPANOMETRY", "GENDER", "AGE",
         "ASSR-500 Hz", "ASSR-1000 Hz", "ASSR-2000 Hz", "ASSR-4000 Hz"
@@ -43,7 +41,7 @@ if uploaded_file is not None:
 
     data = df[features + [target_col]].dropna()
 
-    # Encode categoricals & keep numeric only
+    # Encode categoricals & numeric only
     X = pd.get_dummies(data[features], drop_first=True)
     X = X.select_dtypes(include=[np.number])
     y = data[target_col]
@@ -54,6 +52,14 @@ if uploaded_file is not None:
 
     def acc_10_db(y_true, y_pred):
         return np.mean(np.abs(y_true - y_pred) <= 10) * 100
+
+    st.sidebar.header("Hyperparameters")
+    rf_max_depth = st.sidebar.slider("Random Forest max_depth", 2, 20, 10)
+    rf_n_estimators = st.sidebar.slider("Random Forest n_estimators", 10, 200, 100)
+    dt_max_depth = st.sidebar.slider("Decision Tree max_depth", 2, 20, 5)
+    knn_neighbors = st.sidebar.slider("KNN n_neighbors", 1, 20, 5)
+    svm_c = st.sidebar.number_input("SVM C", 0.1, 10.0, 1.0)
+    svm_epsilon = st.sidebar.number_input("SVM epsilon", 0.01, 1.0, 0.1)
 
     # --- Linear Regression ---
     st.subheader("Linear Regression")
@@ -72,7 +78,7 @@ if uploaded_file is not None:
 
     # --- Random Forest ---
     st.subheader("Random Forest")
-    rf = RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42)
+    rf = RandomForestRegressor(n_estimators=rf_n_estimators, max_depth=rf_max_depth, random_state=42)
     rf.fit(X_train, y_train)
     y_pred = rf.predict(X_test)
     st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
@@ -86,7 +92,7 @@ if uploaded_file is not None:
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
-    svm = SVR(C=1.0, epsilon=0.1)
+    svm = SVR(C=svm_c, epsilon=svm_epsilon)
     svm.fit(X_train_scaled, y_train)
     y_pred = svm.predict(X_test_scaled)
     st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
@@ -98,7 +104,7 @@ if uploaded_file is not None:
 
     # --- Decision Tree ---
     st.subheader("Decision Tree")
-    dt = DecisionTreeRegressor(max_depth=5, random_state=42)
+    dt = DecisionTreeRegressor(max_depth=dt_max_depth, random_state=42)
     dt.fit(X_train, y_train)
     y_pred = dt.predict(X_test)
     st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
@@ -112,7 +118,7 @@ if uploaded_file is not None:
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
-    knn = KNeighborsRegressor(n_neighbors=5)
+    knn = KNeighborsRegressor(n_neighbors=knn_neighbors)
     knn.fit(X_train_scaled, y_train)
     y_pred = knn.predict(X_test_scaled)
     st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
