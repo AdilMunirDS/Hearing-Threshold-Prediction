@@ -12,14 +12,10 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.preprocessing import StandardScaler
 
-# ---------------------------
-# App title
-# ---------------------------
+
 st.title("Hearing Threshold Prediction App")
 
-# ---------------------------
-# File uploader
-# ---------------------------
+
 uploaded_file = st.file_uploader("Upload your Excel/CSV dataset", type=["csv", "xlsx"])
 
 if uploaded_file is not None:
@@ -31,9 +27,7 @@ if uploaded_file is not None:
     st.write("### Dataset Preview")
     st.dataframe(df.head())
 
-    # ---------------------------
-    # Select Features and Target
-    # ---------------------------
+    
     st.subheader("Model Training")
 
     features = st.multiselect("Select Feature Columns", df.columns.tolist())
@@ -43,17 +37,15 @@ if uploaded_file is not None:
         X = df[features]
         y = df[target]
 
-        # Split
+        
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-        # Scale
+        
         scaler = StandardScaler()
         X_train_scaled = scaler.fit_transform(X_train)
         X_test_scaled = scaler.transform(X_test)
 
-        # ---------------------------
-        # Model Selection
-        # ---------------------------
+       
         model_choice = st.selectbox(
             "Choose a model",
             ["Linear Regression", "Random Forest", "SVM", "Decision Tree", "KNN"]
@@ -71,27 +63,24 @@ if uploaded_file is not None:
             elif model_choice == "KNN":
                 model = KNeighborsRegressor()
 
-            # Train
+           
             model.fit(X_train_scaled, y_train)
 
-            # Evaluate
+           
             y_pred = model.predict(X_test_scaled)
 
-            # Accuracy within ±10 dB
+            
             within_10 = np.mean(np.abs(y_pred - y_test) <= 10) * 100
             st.success(f"Model trained successfully! Accuracy within ±10 dB: {within_10:.2f}%")
 
-            # Save model and scaler
             joblib.dump(model, "trained_model.pkl")
             joblib.dump(scaler, "scaler.pkl")
             st.info("Model and scaler saved as 'trained_model.pkl' & 'scaler.pkl'")
 
-# ---------------------------
-# Prediction Section
-# ---------------------------
+
 st.subheader("Make a Prediction with Inputs")
 
-# Input fields
+
 assr_500 = st.text_input("ASSR at 500 Hz", "")
 assr_1000 = st.text_input("ASSR at 1000 Hz", "")
 assr_2000 = st.text_input("ASSR at 2000 Hz", "")
@@ -107,17 +96,17 @@ if st.button("Predict PTA"):
         scaler = joblib.load("scaler.pkl")
 
         try:
-            # Build input
+            
             input_data = pd.DataFrame([[
                 float(assr_500), float(assr_1000), float(assr_2000), float(assr_4000), float(age),
                 1 if gender == "Male" else 0,
                 {"Normal":0, "Wax":1, "Perforation":2, "Other":3}[otoscopy]
             ]])
 
-            # Scale features
+            
             input_scaled = scaler.transform(input_data)
 
-            # Predict
+            
             prediction = model.predict(input_scaled)
             st.success(f"Predicted PTA Threshold: {prediction[0]:.2f} dB HL")
 
