@@ -11,137 +11,129 @@ from sklearn.svm import SVR
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.preprocessing import StandardScaler
+from sklearn.multioutput import MultiOutputRegressor
 
+# -----------------------------
+# Helper functions
+# -----------------------------
+def get_model(model_name):
+    if model_name == "Linear Regression":
+        return LinearRegression()
+    elif model_name == "Random Forest":
+        return RandomForestRegressor(random_state=42)
+    elif model_name == "SVM":
+        return MultiOutputRegressor(SVR())  # SVR doesn't support multi-output directly
+    elif model_name == "Decision Tree":
+        return DecisionTreeRegressor(random_state=42)
+    elif model_name == "KNN":
+        return KNeighborsRegressor()
+    else:
+        return None
 
-st.title("Hearing Threshold Prediction")
+def save_model(model, scaler, features, targets, filename="trained_model.pkl"):
+    joblib.dump({"model": model, "scaler": scaler, "features": features, "targets": targets}, filename)
 
+def load_model(filename="trained_model.pkl"):
+    return joblib.load(filename)
 
-uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
-if uploaded_file is not None:
-    @st.cache_data
-    def load_data(file):
-        return pd.read_excel(file)
-    
-    df = load_data(uploaded_file)
-    st.success("File loaded successfully!")
-    st.write(df.head())
+def acc_10_db(y_true, y_pred):
+    """Calculate ±10 dB accuracy for each output column."""
+    return np.mean(np.abs(y_true - y_pred) <= 10, axis=0) * 100
 
-  
-    frequencies = {
-        "500 Hz": "PTA-500 Hz",
-        "1000 Hz": "PTA-1000 Hz",
-        "2000 Hz": "PTA-2000 Hz",
-        "4000 Hz": "PTA-4000 Hz",
-    }
+# -----------------------------
+# Streamlit UI
+# -----------------------------
+st.title("Multi-Frequency PTA Prediction from ASSR")
 
+menu = ["Upload & Train", "Predict", "Load Saved Model"]
+choice = st.sidebar.radio("Menu", menu)
 
-    features = [
-        "OTOSCOPE", "TYMPANOMETRY", "GENDER", "AGE",
-        "ASSR-500 Hz", "ASSR-1000 Hz", "ASSR-2000 Hz", "ASSR-4000 Hz"
-    ]
+if choice == "Upload & Train":
+    st.subheader("Upload Dataset & Train Model")
 
-    selected_freq = st.selectbox("Select Frequency to Predict", list(frequencies.keys()))
-    target_col = frequencies[selected_freq]
+    uploaded_file = st.file_uploader("Upload Excel or CSV", type=["xlsx", "csv"])
+    if uploaded_file is not None:
+        if uploaded_file.name.endswith(".csv"):
+            df = pd.read_csv(uploaded_file)
+        else:
+            df = pd.read_excel(uploaded_file)
 
-   
-    data = df[features + [target_col]].dropna()
-    X = pd.get_dummies(data[features], drop_first=True)
-    y = data[target_col]
+        st.write("Dataset Preview:", df.head())
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
+        # Select input (X) and target (y)
+        features = st.multiselect("Select input features (ASSR)", df.columns.tolist())
+        targets = st.multiselect("Select target columns (PTA)", df.columns.tolist())
 
-    col1, col2, col3 = st.columns(3)
-    col4, col5 = st.columns(2)
+        if features and targets:
+            X = df[features].values
+            y = df[targets].values
 
-    def acc_10_db(y_true, y_pred):
-        return np.mean(np.abs(y_true - y_pred) <= 10) * 100
+            # Train-test split
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42
+            )
 
- 
-    with col1:
-        st.subheader("Linear Regression")
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
-        X_test_scaled = scaler.transform(X_test)
-        model = LinearRegression()
-        model.fit(X_train_scaled, y_train)
-        y_pred = model.predict(X_test_scaled)
-        st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
+            # Scaling
+            scaler = StandardScaler()
+            X_train = scaler.fit_transform(X_train)
+            X_test = scaler.transform(X_test)
 
-        if st.button("Save LR Model"):
-            os.makedirs("saved_models", exist_ok=True)
-            joblib.dump(model, f"saved_models/model_{selected_freq}_LR.pkl")
-            joblib.dump(scaler, f"saved_models/model_{selected_freq}_LR_scaler.pkl")
-            st.success("Saved LR + scaler")
+            # Choose model
+            model_name = st.selectbox("Select Model", ["Linear Regression", "Random Forest", "SVM", "Decision Tree", "KNN"])
+            model = get_model(model_name)
 
+            if st.button("Train Model"):
+                model.fit(X_train, y_train)
+                y_pred = model.predict(X_test)
 
-    with col2:
-        st.subheader("Random Forest")
-        n_estimators = st.slider("n_estimators", 10, 200, 100, step=10, key="rf_ne")
-        max_depth = st.slider("max_depth", 1, 30, 10, key="rf_md")
-        model = RandomForestRegressor(
-            n_estimators=n_estimators, max_depth=max_depth, random_state=42
-        )
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
+                # ±10 dB accuracy
+                acc = acc_10_db(y_test, y_pred)
 
-        if st.button("Save RF Model"):
-            os.makedirs("saved_models", exist_ok=True)
-            joblib.dump(model, f"saved_models/model_{selected_freq}_RF.pkl")
-            st.success("Saved RF")
+                st.success(f"Model Trained: {model_name}")
+                for i, target in enumerate(targets):
+                    st.write(f"{target} → ±10 dB Accuracy: {acc[i]:.2f}%")
 
-  
-    with col3:
-        st.subheader("SVM")
-        C = st.number_input("C", 0.1, 10.0, 1.0, step=0.1, key="svm_c")
-        epsilon = st.number_input("epsilon", 0.0, 2.0, 0.1, step=0.1, key="svm_eps")
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
-        X_test_scaled = scaler.transform(X_test)
-        model = SVR(C=C, epsilon=epsilon)
-        model.fit(X_train_scaled, y_train)
-        y_pred = model.predict(X_test_scaled)
-        st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
+                if st.button("Save Trained Model"):
+                    save_model(model, scaler, features, targets, "trained_model.pkl")
+                    st.success("Model saved successfully as trained_model.pkl")
 
-        if st.button("Save SVM Model"):
-            os.makedirs("saved_models", exist_ok=True)
-            joblib.dump(model, f"saved_models/model_{selected_freq}_SVM.pkl")
-            joblib.dump(scaler, f"saved_models/model_{selected_freq}_SVM_scaler.pkl")
-            st.success("Saved SVM + scaler")
+elif choice == "Predict":
+    st.subheader("Predict PTA from ASSR")
 
-    
-    with col4:
-        st.subheader("Decision Tree")
-        max_depth = st.slider("max_depth", 1, 30, 5, key="dt_md")
-        model = DecisionTreeRegressor(max_depth=max_depth, random_state=42)
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
+    if os.path.exists("trained_model.pkl"):
+        model_data = load_model("trained_model.pkl")
+        model = model_data["model"]
+        scaler = model_data["scaler"]
+        features = model_data["features"]
+        targets = model_data["targets"]
 
-        if st.button("Save DT Model"):
-            os.makedirs("saved_models", exist_ok=True)
-            joblib.dump(model, f"saved_models/model_{selected_freq}_DT.pkl")
-            st.success("Saved DT")
+        st.write(f"Expected ASSR input features: {features}")
 
-   
-    with col5:
-        st.subheader("KNN")
-        n_neighbors = st.slider("n_neighbors", 1, 20, 5, key="knn_k")
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
-        X_test_scaled = scaler.transform(X_test)
-        model = KNeighborsRegressor(n_neighbors=n_neighbors)
-        model.fit(X_train_scaled, y_train)
-        y_pred = model.predict(X_test_scaled)
-        st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
+        # Input ASSR values
+        input_values = st.text_input(f"Enter ASSR values for {features} (comma separated)")
+        if input_values:
+            try:
+                input_list = [float(x.strip()) for x in input_values.split(",")]
+                if len(input_list) != len(features):
+                    st.error(f"Expected {len(features)} values, got {len(input_list)}")
+                else:
+                    input_array = np.array(input_list).reshape(1, -1)
+                    input_scaled = scaler.transform(input_array)
 
-        if st.button("Save KNN Model"):
-            os.makedirs("saved_models", exist_ok=True)
-            joblib.dump(model, f"saved_models/model_{selected_freq}_KNN.pkl")
-            joblib.dump(scaler, f"saved_models/model_{selected_freq}_KNN_scaler.pkl")
-            st.success("Saved KNN + scaler")
+                    prediction = model.predict(input_scaled)[0]
 
-else:
-    st.info("Please upload an Excel file to proceed.")
+                    st.success("Predicted PTA values:")
+                    for i, target in enumerate(targets):
+                        st.write(f"{target}: {prediction[i]:.2f}")
+            except Exception as e:
+                st.error(f"Error: {e}")
+    else:
+        st.warning("No trained model found. Please train and save a model first.")
+
+elif choice == "Load Saved Model":
+    st.subheader("Load a Previously Saved Model")
+    model_file = st.file_uploader("Upload a trained model (.pkl)", type=["pkl"])
+    if model_file is not None:
+        model_data = joblib.load(model_file)
+        st.success("Model loaded successfully! You can now use it in the Predict tab.")
+        save_model(model_data["model"], model_data["scaler"], model_data["features"], model_data["targets"], "trained_model.pkl")
