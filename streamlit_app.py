@@ -42,7 +42,10 @@ if uploaded_file is not None:
     target_col = frequencies[selected_freq]
 
     data = df[features + [target_col]].dropna()
+
+    # Encode categoricals & keep numeric only
     X = pd.get_dummies(data[features], drop_first=True)
+    X = X.select_dtypes(include=[np.number])
     y = data[target_col]
 
     X_train, X_test, y_train, y_test = train_test_split(
@@ -69,9 +72,7 @@ if uploaded_file is not None:
 
     # --- Random Forest ---
     st.subheader("Random Forest")
-    n_estimators = st.slider("Number of Trees (n_estimators)", 10, 300, 100, step=10)
-    max_depth = st.slider("Max Depth", 1, 50, 10)
-    rf = RandomForestRegressor(n_estimators=n_estimators, max_depth=max_depth, random_state=42)
+    rf = RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42)
     rf.fit(X_train, y_train)
     y_pred = rf.predict(X_test)
     st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
@@ -82,12 +83,10 @@ if uploaded_file is not None:
 
     # --- SVM ---
     st.subheader("SVM")
-    C = st.number_input("C (Regularization)", 0.1, 10.0, 1.0, step=0.1)
-    epsilon = st.number_input("Epsilon (Margin)", 0.0, 2.0, 0.1, step=0.1)
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
-    svm = SVR(C=C, epsilon=epsilon)
+    svm = SVR(C=1.0, epsilon=0.1)
     svm.fit(X_train_scaled, y_train)
     y_pred = svm.predict(X_test_scaled)
     st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
@@ -99,8 +98,7 @@ if uploaded_file is not None:
 
     # --- Decision Tree ---
     st.subheader("Decision Tree")
-    max_depth = st.slider("Max Depth (Decision Tree)", 1, 50, 5)
-    dt = DecisionTreeRegressor(max_depth=max_depth, random_state=42)
+    dt = DecisionTreeRegressor(max_depth=5, random_state=42)
     dt.fit(X_train, y_train)
     y_pred = dt.predict(X_test)
     st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
@@ -111,11 +109,10 @@ if uploaded_file is not None:
 
     # --- KNN ---
     st.subheader("KNN")
-    n_neighbors = st.slider("Number of Neighbors (k)", 1, 20, 5)
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
-    knn = KNeighborsRegressor(n_neighbors=n_neighbors)
+    knn = KNeighborsRegressor(n_neighbors=5)
     knn.fit(X_train_scaled, y_train)
     y_pred = knn.predict(X_test_scaled)
     st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
