@@ -12,7 +12,7 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.preprocessing import StandardScaler
 
-st.title("📊 Train & Save Models for Hearing Threshold Prediction")
+st.title("Train & Save Models for Hearing Threshold Prediction")
 
 uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
 if uploaded_file is not None:
@@ -21,7 +21,7 @@ if uploaded_file is not None:
         return pd.read_excel(file)
 
     df = load_data(uploaded_file)
-    st.success("✅ File loaded successfully!")
+    st.success("File loaded successfully!")
     st.write(df.head())
 
     frequencies = {
@@ -41,7 +41,7 @@ if uploaded_file is not None:
 
     data = df[features + [target_col]].dropna()
 
-    # Encode categoricals & numeric only
+ 
     X = pd.get_dummies(data[features], drop_first=True)
     X = X.select_dtypes(include=[np.number])
     y = data[target_col]
@@ -61,7 +61,7 @@ if uploaded_file is not None:
     svm_c = st.sidebar.number_input("SVM C", 0.1, 10.0, 1.0)
     svm_epsilon = st.sidebar.number_input("SVM epsilon", 0.01, 1.0, 0.1)
 
-    # --- Linear Regression ---
+    
     st.subheader("Linear Regression")
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
@@ -76,7 +76,6 @@ if uploaded_file is not None:
         joblib.dump(scaler, f"saved_models/{selected_freq}_LR_scaler.pkl")
         st.success("LR + Scaler saved!")
 
-    # --- Random Forest ---
     st.subheader("Random Forest")
     rf = RandomForestRegressor(n_estimators=rf_n_estimators, max_depth=rf_max_depth, random_state=42)
     rf.fit(X_train, y_train)
@@ -87,7 +86,7 @@ if uploaded_file is not None:
         joblib.dump(rf, f"saved_models/{selected_freq}_RF.pkl")
         st.success("RF saved!")
 
-    # --- SVM ---
+
     st.subheader("SVM")
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
@@ -102,7 +101,7 @@ if uploaded_file is not None:
         joblib.dump(scaler, f"saved_models/{selected_freq}_SVM_scaler.pkl")
         st.success("SVM + Scaler saved!")
 
-    # --- Decision Tree ---
+   
     st.subheader("Decision Tree")
     dt = DecisionTreeRegressor(max_depth=dt_max_depth, random_state=42)
     dt.fit(X_train, y_train)
@@ -113,7 +112,7 @@ if uploaded_file is not None:
         joblib.dump(dt, f"saved_models/{selected_freq}_DT.pkl")
         st.success("DT saved!")
 
-    # --- KNN ---
+
     st.subheader("KNN")
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
@@ -129,4 +128,4 @@ if uploaded_file is not None:
         st.success("KNN + Scaler saved!")
 
 else:
-    st.info("📂 Please upload an Excel file to proceed.")
+    st.info("Please upload an Excel file to proceed.")
