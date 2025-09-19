@@ -4,7 +4,7 @@ import numpy as np
 import joblib
 import os
 
-st.title("🎯 Predict Hearing Thresholds")
+st.title("Predict Hearing Thresholds")
 
 
 frequencies = ["500 Hz", "1000 Hz", "2000 Hz", "4000 Hz"]

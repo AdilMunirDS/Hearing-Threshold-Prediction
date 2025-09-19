@@ -70,7 +70,7 @@ if uploaded_file is not None:
     lr.fit(X_train_scaled, y_train)
     y_pred = lr.predict(X_test_scaled)
     st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
-    if st.button("💾 Save LR Model"):
+    if st.button("Save LR Model"):
         os.makedirs("saved_models", exist_ok=True)
         joblib.dump(lr, f"saved_models/{selected_freq}_LR.pkl")
         joblib.dump(scaler, f"saved_models/{selected_freq}_LR_scaler.pkl")
@@ -81,7 +81,7 @@ if uploaded_file is not None:
     rf.fit(X_train, y_train)
     y_pred = rf.predict(X_test)
     st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
-    if st.button("💾 Save RF Model"):
+    if st.button("Save RF Model"):
         os.makedirs("saved_models", exist_ok=True)
         joblib.dump(rf, f"saved_models/{selected_freq}_RF.pkl")
         st.success("RF saved!")
@@ -95,7 +95,7 @@ if uploaded_file is not None:
     svm.fit(X_train_scaled, y_train)
     y_pred = svm.predict(X_test_scaled)
     st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
-    if st.button("💾 Save SVM Model"):
+    if st.button("Save SVM Model"):
         os.makedirs("saved_models", exist_ok=True)
         joblib.dump(svm, f"saved_models/{selected_freq}_SVM.pkl")
         joblib.dump(scaler, f"saved_models/{selected_freq}_SVM_scaler.pkl")
@@ -107,7 +107,7 @@ if uploaded_file is not None:
     dt.fit(X_train, y_train)
     y_pred = dt.predict(X_test)
     st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
-    if st.button("💾 Save DT Model"):
+    if st.button("save DT Model"):
         os.makedirs("saved_models", exist_ok=True)
         joblib.dump(dt, f"saved_models/{selected_freq}_DT.pkl")
         st.success("DT saved!")
@@ -121,7 +121,7 @@ if uploaded_file is not None:
     knn.fit(X_train_scaled, y_train)
     y_pred = knn.predict(X_test_scaled)
     st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
-    if st.button("💾 Save KNN Model"):
+    if st.button("Save KNN Model"):
         os.makedirs("saved_models", exist_ok=True)
         joblib.dump(knn, f"saved_models/{selected_freq}_KNN.pkl")
         joblib.dump(scaler, f"saved_models/{selected_freq}_KNN_scaler.pkl")
