@@ -36,14 +36,14 @@ if uploaded_file is not None:
         "ASSR-500 Hz", "ASSR-1000 Hz", "ASSR-2000 Hz", "ASSR-4000 Hz"
     ]
 
-    selected_freq = st.selectbox("🎚 Select Frequency to Predict", list(frequencies.keys()))
+    selected_freq = st.selectbox("Select Frequency to Predict", list(frequencies.keys()))
     target_col = frequencies[selected_freq]
 
     data = df[features + [target_col]].dropna()
 
  
     X = pd.get_dummies(data[features], drop_first=True)
-    X = X.select_dtypes(include=[np.number])
+   # X = X.select_dtypes(include=[np.number])
     y = data[target_col]
 
     X_train, X_test, y_train, y_test = train_test_split(
