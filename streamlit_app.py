@@ -43,7 +43,7 @@ if uploaded_file is not None:
 
  
     X = pd.get_dummies(data[features], drop_first=True)
-   # X = X.select_dtypes(include=[np.number])
+    feature_columns = X.columns.tolist()  
     y = data[target_col]
 
     X_train, X_test, y_train, y_test = train_test_split(
@@ -61,7 +61,7 @@ if uploaded_file is not None:
     svm_c = st.sidebar.number_input("SVM C", 0.1, 10.0, 1.0)
     svm_epsilon = st.sidebar.number_input("SVM epsilon", 0.01, 1.0, 0.1)
 
-    
+
     st.subheader("Linear Regression")
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
@@ -72,10 +72,11 @@ if uploaded_file is not None:
     st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
     if st.button("Save LR Model"):
         os.makedirs("saved_models", exist_ok=True)
-        joblib.dump(lr, f"saved_models/{selected_freq}_LR.pkl")
-        joblib.dump(scaler, f"saved_models/{selected_freq}_LR_scaler.pkl")
-        st.success("LR + Scaler saved!")
+        bundle = (lr, scaler, feature_columns)
+        joblib.dump(bundle, f"saved_models/{selected_freq}_LR.pkl")
+        st.success("LR + Scaler + Columns saved!")
 
+ 
     st.subheader("Random Forest")
     rf = RandomForestRegressor(n_estimators=rf_n_estimators, max_depth=rf_max_depth, random_state=42)
     rf.fit(X_train, y_train)
@@ -83,10 +84,11 @@ if uploaded_file is not None:
     st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
     if st.button("Save RF Model"):
         os.makedirs("saved_models", exist_ok=True)
-        joblib.dump(rf, f"saved_models/{selected_freq}_RF.pkl")
-        st.success("RF saved!")
+        bundle = (rf, None, feature_columns)   # no scaler
+        joblib.dump(bundle, f"saved_models/{selected_freq}_RF.pkl")
+        st.success("RF + Columns saved!")
 
-
+  
     st.subheader("SVM")
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
@@ -97,22 +99,22 @@ if uploaded_file is not None:
     st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
     if st.button("Save SVM Model"):
         os.makedirs("saved_models", exist_ok=True)
-        joblib.dump(svm, f"saved_models/{selected_freq}_SVM.pkl")
-        joblib.dump(scaler, f"saved_models/{selected_freq}_SVM_scaler.pkl")
-        st.success("SVM + Scaler saved!")
+        bundle = (svm, scaler, feature_columns)
+        joblib.dump(bundle, f"saved_models/{selected_freq}_SVM.pkl")
+        st.success("SVM + Scaler + Columns saved!")
 
-   
     st.subheader("Decision Tree")
     dt = DecisionTreeRegressor(max_depth=dt_max_depth, random_state=42)
     dt.fit(X_train, y_train)
     y_pred = dt.predict(X_test)
     st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
-    if st.button("save DT Model"):
+    if st.button("Save DT Model"):
         os.makedirs("saved_models", exist_ok=True)
-        joblib.dump(dt, f"saved_models/{selected_freq}_DT.pkl")
-        st.success("DT saved!")
+        bundle = (dt, None, feature_columns)   # no scaler
+        joblib.dump(bundle, f"saved_models/{selected_freq}_DT.pkl")
+        st.success("DT + Columns saved!")
 
-
+   
     st.subheader("KNN")
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
@@ -123,9 +125,9 @@ if uploaded_file is not None:
     st.write(f"±10 dB Accuracy: {acc_10_db(y_test, y_pred):.2f}%")
     if st.button("Save KNN Model"):
         os.makedirs("saved_models", exist_ok=True)
-        joblib.dump(knn, f"saved_models/{selected_freq}_KNN.pkl")
-        joblib.dump(scaler, f"saved_models/{selected_freq}_KNN_scaler.pkl")
-        st.success("KNN + Scaler saved!")
+        bundle = (knn, scaler, feature_columns)
+        joblib.dump(bundle, f"saved_models/{selected_freq}_KNN.pkl")
+        st.success("KNN + Scaler + Columns saved!")
 
 else:
     st.info("Please upload an Excel file to proceed.")
