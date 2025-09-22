@@ -17,13 +17,16 @@ model_path = f"saved_models/{selected_freq}_{selected_model}.pkl"
 if not os.path.exists(model_path):
     st.warning("⚠️ Model not found! Please train and save the model first on the main page.")
 else:
-    # Load bundle: (model, scaler, feature_columns)
-    model, scaler, feature_columns = joblib.load(model_path)
+    # Load everything: (model, scaler, feature_columns, categories_dict)
+    model, scaler, feature_columns, categories_dict = joblib.load(model_path)
 
     st.subheader("Enter Patient Features")
-    otoscope = st.selectbox("Otoscope", ["Normal", "Abnormal"])
-    tympanometry = st.selectbox("Tympanometry", ["Type A", "Type B", "Type C"])
-    gender = st.selectbox("Gender", ["Male", "Female"])
+
+    # Dynamic selectboxes from training categories
+    otoscope = st.selectbox("Otoscope", categories_dict["OTOSCOPE"])
+    tympanometry = st.selectbox("Tympanometry", categories_dict["TYMPANOMETRY"])
+    gender = st.selectbox("Gender", categories_dict["GENDER"])
+
     age = st.number_input("Age (years)", min_value=0, max_value=120, value=30)
     assr_500 = st.number_input("ASSR-500 Hz", min_value=0, max_value=120, value=20)
     assr_1000 = st.number_input("ASSR-1000 Hz", min_value=0, max_value=120, value=20)
@@ -43,18 +46,18 @@ else:
     }
     input_df = pd.DataFrame(input_dict)
 
-  
+    # One-hot encode input
     input_df = pd.get_dummies(input_df, drop_first=True)
 
-    
+    # Align with training features
     input_df = input_df.reindex(columns=feature_columns, fill_value=0)
 
- 
+    # Scale if scaler exists
     if scaler is not None:
         input_scaled = scaler.transform(input_df)
     else:
         input_scaled = input_df.values
 
-
+    # Predict
     prediction = model.predict(input_scaled)[0]
     st.success(f"Predicted PTA ({selected_freq}) Threshold: {prediction:.1f} dB")
